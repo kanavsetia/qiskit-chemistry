@@ -95,7 +95,7 @@ def _two_body(edge_list, p, q, r, s, h2_pqrs):
 
         qubit_op = (a_pq * a_rs) * (-id_op - b_p * b_q + b_p * b_r +
                                     b_p * b_s + b_q * b_r + b_q * b_s -
-                                    b_r * b_s + b_p * b_q * b_r * b_s)
+                                    b_r * b_s - b_p * b_q * b_r * b_s)
         final_coeff = 0.125
 
     # Handle case of three unique indices.
@@ -271,7 +271,7 @@ def edge_operator_bi(edge_list, i):
     return qubit_op
 
 
-def bksf_mapping(fer_op):
+def bksf_mapping(fer_op,notation='chemist',toy_ham=False):
     r"""
     Transform from FermionOpeator to QubitOperator for Bravyi-Kitaev superfast algorithm.
 
@@ -306,10 +306,10 @@ def bksf_mapping(fer_op):
     # convert to interleaved spins and negate the values of h2
     fer_op = copy.deepcopy(fer_op)
     fer_op._convert_to_interleaved_spins()
-    fer_op.h2 = fer_op.h2 * -1.0
-    # for i,j,k,m in itertools.product(range(fer_op.modes), repeat=4):
-    #     if len(list(set([i,j,k,m]))) == 1:
-    #         fer_op.h2[i,j,k,m] = 0.0
+    if toy_ham ==False:
+        fer_op.h2=fer_op.h2 * -1.0
+    if notation == 'chemist':
+        fer_op.h2=np.einsum('ijkl->ikjl',fer_op.h2)
     modes = fer_op.modes
     # Initialize qubit operator as constant.
     qubit_op = Operator(paulis=[])
@@ -449,3 +449,4 @@ def generate_fermions(fer_op, i, j):
 
     gen_fer_operator.scaling_coeff(-1j * 0.5)
     return gen_fer_operator
+
