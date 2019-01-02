@@ -271,7 +271,7 @@ def edge_operator_bi(edge_list, i):
     return qubit_op
 
 
-def bksf_mapping(fer_op,notation='chemist',toy_ham=False):
+def bksf_mapping(fer_op, notation='chemist', toy_ham=False):
     r"""
     Transform from FermionOpeator to QubitOperator for Bravyi-Kitaev superfast algorithm.
 
@@ -299,6 +299,12 @@ def bksf_mapping(fer_op,notation='chemist',toy_ham=False):
 
     Args:
         fer_op (FermionicOperator): the fermionic operator in the second quanitzed form
+        notation: notation used to specify the Hamiltonian. Default is 'chemist'
+                  h2(i,j,k,l)--> adag_i adag_k a_m a_j
+                  Specify 'physicist' for:
+                  h2(i,j,k,l)--> adag_i adag_j a_k a_l
+        toy_ham: True for Hamiltonian provided manually, False for Hamiltonian
+                  obtained from different drivers.
 
     Returns:
         Operator: mapped qubit operator
@@ -306,10 +312,10 @@ def bksf_mapping(fer_op,notation='chemist',toy_ham=False):
     # convert to interleaved spins and negate the values of h2
     fer_op = copy.deepcopy(fer_op)
     fer_op._convert_to_interleaved_spins()
-    if toy_ham ==False:
-        fer_op.h2=fer_op.h2 * -1.0
+    if toy_ham is False:
+        fer_op.h2 = fer_op.h2 * -1.0
     if notation == 'chemist':
-        fer_op.h2=np.einsum('ijkl->ikjl',fer_op.h2)
+        fer_op.h2 = np.einsum('ijkl->ikjl',fer_op.h2)
     modes = fer_op.modes
     # Initialize qubit operator as constant.
     qubit_op = Operator(paulis=[])
