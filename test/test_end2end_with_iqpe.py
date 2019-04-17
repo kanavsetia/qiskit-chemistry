@@ -16,24 +16,22 @@
 # =============================================================================
 
 import unittest
-from collections import OrderedDict
 
 from parameterized import parameterized
 import numpy as np
-from qiskit_aqua import get_aer_backend
+import qiskit
 from qiskit.transpiler import PassManager
-from qiskit_aqua.utils import decimal_to_binary
-from qiskit_aqua import QuantumInstance
-from qiskit_aqua.algorithms.single_sample import IQPE
-from qiskit_aqua.algorithms.classical import ExactEigensolver
+from qiskit.aqua.utils import decimal_to_binary
+from qiskit.aqua import QuantumInstance
+from qiskit.aqua.algorithms.single_sample import IQPE
+from qiskit.aqua.algorithms.classical import ExactEigensolver
+from test.common import QiskitChemistryTestCase
+from qiskit.chemistry.drivers import PySCFDriver, UnitsType
+from qiskit.chemistry import FermionicOperator, QiskitChemistryError
+from qiskit.chemistry.aqua_extensions.components.initial_states import HartreeFock
 
-from test.common import QiskitAquaChemistryTestCase
-from qiskit_chemistry.drivers import ConfigurationManager
-from qiskit_chemistry import FermionicOperator, QiskitChemistryError
-from qiskit_chemistry.aqua_extensions.components.initial_states import HartreeFock
 
-
-class TestIQPE(QiskitAquaChemistryTestCase):
+class TestIQPE(QiskitChemistryTestCase):
     """IQPE tests."""
 
     @parameterized.expand([
@@ -45,21 +43,15 @@ class TestIQPE(QiskitAquaChemistryTestCase):
         self.algorithm = 'IQPE'
         self.log.debug('Testing End-to-End with IQPE on H2 with '
                        'inter-atomic distance {}.'.format(distance))
-        cfg_mgr = ConfigurationManager()
-        pyscf_cfg = OrderedDict([
-            ('atom', 'H .0 .0 .0; H .0 .0 {}'.format(distance)),
-            ('unit', 'Angstrom'),
-            ('charge', 0),
-            ('spin', 0),
-            ('basis', 'sto3g')
-        ])
-        section = {}
-        section['properties'] = pyscf_cfg
         try:
-            driver = cfg_mgr.get_driver_instance('PYSCF')
+            driver = PySCFDriver(atom='H .0 .0 .0; H .0 .0 {}'.format(distance),
+                                 unit=UnitsType.ANGSTROM,
+                                 charge=0,
+                                 spin=0,
+                                 basis='sto3g')
         except QiskitChemistryError:
             self.skipTest('PYSCF driver does not appear to be installed')
-        self.molecule = driver.run(section)
+        self.molecule = driver.run()
         qubit_mapping = 'parity'
         fer_op = FermionicOperator(h1=self.molecule.one_body_integrals, h2=self.molecule.two_body_integrals)
         self.qubit_op = fer_op.mapping(map_type=qubit_mapping, threshold=1e-10).two_qubit_reduced_operator(2)
@@ -78,9 +70,9 @@ class TestIQPE(QiskitAquaChemistryTestCase):
         state_in = HartreeFock(self.qubit_op.num_qubits, num_orbitals,
                                num_particles, qubit_mapping, two_qubit_reduction)
         iqpe = IQPE(self.qubit_op, state_in, num_time_slices, num_iterations,
-                    paulis_grouping='random', expansion_mode='suzuki', expansion_order=2,
+                    expansion_mode='suzuki', expansion_order=2,
                     shallow_circuit_concat=True)
-        backend = get_aer_backend('qasm_simulator')
+        backend = qiskit.BasicAer.get_backend('qasm_simulator')
         quantum_instance = QuantumInstance(backend, shots=100, pass_manager=PassManager())
 
         result = iqpe.run(quantum_instance)

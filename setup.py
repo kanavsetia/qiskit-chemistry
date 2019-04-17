@@ -16,26 +16,32 @@
 # =============================================================================
 
 import setuptools
+import inspect
+import sys
 
-long_description = """<a href="https://qiskit.org/aqua" rel=nofollow>Qiskit Chemistry</a> 
- is a set of quantum computing algorithms, 
+long_description = """<a href="https://qiskit.org/aqua" rel=nofollow>Qiskit Chemistry</a>
+ is a set of quantum computing algorithms,
  tools and APIs for experimenting with real-world chemistry applications on near-term quantum devices."""
 
 requirements = [
-    "qiskit-aqua>=0.4.1",
+    "qiskit-aqua>=0.4.2",
     "numpy>=1.13",
     "h5py",
     "psutil>=5",
     "jsonschema>=2.6,<2.7",
-    "setuptools>=40.5.0",
-    "pyobjc-core; sys_platform == 'darwin'",
-    "pyobjc-framework-Cocoa; sys_platform == 'darwin'"
+    "networkx>=2.2",
+    "pyscf; sys_platform != 'win32'",
+    "setuptools>=40.1.0"
 ]
 
+if not hasattr(setuptools, 'find_namespace_packages') or not inspect.ismethod(setuptools.find_namespace_packages):
+    print("Your setuptools version:'{}' does not support PEP 420 (find_namespace_packages). "
+          "Upgrade it to version >='40.1.0' and repeat install.".format(setuptools.__version__))
+    sys.exit(1)
 
 setuptools.setup(
     name='qiskit-chemistry',
-    version="0.4.2",  # this should match __init__.__version__
+    version="0.4.3",  # this should match __init__.__version__
     description='Qiskit Chemistry: Experiment with chemistry applications on a quantum machine',
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -56,20 +62,14 @@ setuptools.setup(
         "Topic :: Scientific/Engineering"
     ),
     keywords='qiskit sdk quantum chemistry',
-    packages=setuptools.find_packages(exclude=['test*']),
+    packages=setuptools.find_namespace_packages(exclude=['test*']),
     install_requires=requirements,
     include_package_data=True,
     python_requires=">=3.5",
     entry_points={
-        'console_scripts': [
-            'qiskit_chemistry_cmd=qiskit_chemistry_cmd.command_line:main'
-        ],
-        'gui_scripts': [
-            'qiskit_chemistry_ui=qiskit_chemistry_ui.command_line:main'
-        ],
         'qiskit.aqua.pluggables': [
-            'HartreeFock = qiskit_chemistry.aqua_extensions.components.initial_states:HartreeFock',
-            'UCCSD = qiskit_chemistry.aqua_extensions.components.variational_forms:UCCSD',
+            'HartreeFock = qiskit.chemistry.aqua_extensions.components.initial_states:HartreeFock',
+            'UCCSD = qiskit.chemistry.aqua_extensions.components.variational_forms:UCCSD',
         ],
     },
 )

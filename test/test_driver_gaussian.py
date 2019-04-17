@@ -17,33 +17,30 @@
 
 import unittest
 
-from test.common import QiskitAquaChemistryTestCase
-from qiskit_chemistry import QiskitChemistryError
-from qiskit_chemistry.drivers import ConfigurationManager
+from test.common import QiskitChemistryTestCase
+from qiskit.chemistry import QiskitChemistryError
+from qiskit.chemistry.drivers import GaussianDriver
 from test.test_driver import TestDriver
 
 
-class TestDriverGaussian(QiskitAquaChemistryTestCase, TestDriver):
+class TestDriverGaussian(QiskitChemistryTestCase, TestDriver):
     """Gaussian Driver tests."""
 
     def setUp(self):
-        cfg_mgr = ConfigurationManager()
-        gaussian_cfg = """
-# rhf/sto-3g scf(conventional) geom=nocrowd
-
-h2 molecule
-
-0 1
-H   0.0  0.0    0.0
-H   0.0  0.0    0.735
-
-"""
-        section = {'data': gaussian_cfg}
         try:
-            driver = cfg_mgr.get_driver_instance('GAUSSIAN')
+            driver = GaussianDriver([
+                    '# rhf/sto-3g scf(conventional) geom=nocrowd',
+                    '',
+                    'h2 molecule',
+                    '',
+                    '0 1',
+                    'H   0.0  0.0    0.0',
+                    'H   0.0  0.0    0.735',
+                    ''
+                    ])
         except QiskitChemistryError:
             self.skipTest('GAUSSIAN driver does not appear to be installed')
-        self.qmolecule = driver.run(section)
+        self.qmolecule = driver.run()
 
 
 if __name__ == '__main__':

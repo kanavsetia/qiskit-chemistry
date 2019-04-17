@@ -16,46 +16,38 @@
 # =============================================================================
 
 import unittest
-from collections import OrderedDict
-
 from parameterized import parameterized
-from qiskit_aqua import get_aer_backend
-
-from qiskit_aqua import QuantumInstance
-from qiskit_aqua.algorithms.adaptive import VQE
-from qiskit_aqua.components.variational_forms import RYRZ
-from qiskit_aqua.components.optimizers import COBYLA, SPSA
-
-from test.common import QiskitAquaChemistryTestCase
-from qiskit_chemistry.drivers import HDF5Driver
-from qiskit_chemistry.core import Hamiltonian
+import qiskit
+from qiskit.aqua import QuantumInstance
+from qiskit.aqua.algorithms.adaptive import VQE
+from qiskit.aqua.components.variational_forms import RYRZ
+from qiskit.aqua.components.optimizers import COBYLA, SPSA
+from test.common import QiskitChemistryTestCase
+from qiskit.chemistry.drivers import HDF5Driver
+from qiskit.chemistry.core import Hamiltonian, TransformationType, QubitMappingType
 
 
-class TestEnd2End(QiskitAquaChemistryTestCase):
+class TestEnd2End(QiskitChemistryTestCase):
     """End2End tests."""
 
     def setUp(self):
-        hdf5_cfg = OrderedDict([
-            ('hdf5_input', self._get_resource_path('test_driver_hdf5.hdf5'))
-        ])
-        section = {'properties': hdf5_cfg}
-        driver = HDF5Driver()
-        self.qmolecule = driver.run(section)
+        driver = HDF5Driver(hdf5_input=self._get_resource_path('test_driver_hdf5.hdf5'))
+        self.qmolecule = driver.run()
 
-        core = Hamiltonian(transformation='full', qubit_mapping='parity',
+        core = Hamiltonian(transformation=TransformationType.FULL,
+                           qubit_mapping=QubitMappingType.PARITY,
                            two_qubit_reduction=True,
                            freeze_core=False,
-                           orbital_reduction=[],
-                           max_workers=4)
+                           orbital_reduction=[])
 
-        self.algo_input = core.run(self.qmolecule)
+        self.qubit_op, self.aux_ops = core.run(self.qmolecule)
         self.reference_energy = -1.857275027031588
 
     @parameterized.expand([
-        ['COBYLA_M', 'COBYLA', get_aer_backend('statevector_simulator'), 'matrix', 1],
-        ['COBYLA_P', 'COBYLA', get_aer_backend('statevector_simulator'), 'paulis', 1],
-        # ['SPSA_P', 'SPSA', 'qasm_simulator', 'paulis', 1024],
-        # ['SPSA_GP', 'SPSA', 'qasm_simulator', 'grouped_paulis', 1024]
+        ['COBYLA_M', 'COBYLA', qiskit.BasicAer.get_backend('statevector_simulator'), 'matrix', 1],
+        ['COBYLA_P', 'COBYLA', qiskit.BasicAer.get_backend('statevector_simulator'), 'paulis', 1],
+        # ['SPSA_P', 'SPSA', qiskit.BasicAer.get_backend('qasm_simulator'), 'paulis', 1024],
+        # ['SPSA_GP', 'SPSA', qiskit.BasicAer.get_backend('qasm_simulator'), 'grouped_paulis', 1024]
     ])
     def test_end2end_h2(self, name, optimizer, backend, mode, shots):
 
@@ -65,12 +57,11 @@ class TestEnd2End(QiskitAquaChemistryTestCase):
         elif optimizer == 'SPSA':
             optimizer = SPSA(max_trials=2000)
 
-        ryrz = RYRZ(self.algo_input.qubit_op.num_qubits, depth=3, entanglement='full')
-        vqe = VQE(self.algo_input.qubit_op, ryrz, optimizer, mode, aux_operators=self.algo_input.aux_ops)
-
+        ryrz = RYRZ(self.qubit_op.num_qubits, depth=3, entanglement='full')
+        vqe = VQE(self.qubit_op, ryrz, optimizer, mode, aux_operators=self.aux_ops)
         quantum_instance = QuantumInstance(backend, shots=shots)
         results = vqe.run(quantum_instance)
-        self.assertAlmostEqual(results['energy'], self.reference_energy, places=6)
+        self.assertAlmostEqual(results['energy'], self.reference_energy, places=4)
 
 
 if __name__ == '__main__':

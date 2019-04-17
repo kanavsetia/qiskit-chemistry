@@ -20,14 +20,14 @@ InputParser test.
 """
 
 import unittest
-from test.common import QiskitAquaChemistryTestCase
-from qiskit_aqua import AquaError
-from qiskit_chemistry.parser import InputParser
+from test.common import QiskitChemistryTestCase
+from qiskit.aqua import AquaError
+from qiskit.chemistry.parser import InputParser
 import os
 import json
 
 
-class TestInputParser(QiskitAquaChemistryTestCase):
+class TestInputParser(QiskitChemistryTestCase):
     """InputParser tests."""
 
     def setUp(self):
@@ -47,7 +47,7 @@ class TestInputParser(QiskitAquaChemistryTestCase):
         self.assertEqual(dict1, dict2)
 
     def test_load_from_dict(self):
-        json_dict = self.parser.to_JSON()
+        json_dict = self.parser.get_sections()
 
         p = InputParser(json_dict)
         p.parse()
@@ -56,7 +56,7 @@ class TestInputParser(QiskitAquaChemistryTestCase):
         self.assertEqual(dict1, dict2)
 
     def test_is_modified(self):
-        json_dict = self.parser.to_JSON()
+        json_dict = self.parser.get_sections()
 
         p = InputParser(json_dict)
         p.parse()
@@ -65,7 +65,7 @@ class TestInputParser(QiskitAquaChemistryTestCase):
         self.assertEqual(p.get_section_property('optimizer', 'maxfun'), 1002)
 
     def test_validate(self):
-        json_dict = self.parser.to_JSON()
+        json_dict = self.parser.get_sections()
 
         p = InputParser(json_dict)
         p.parse()
@@ -74,8 +74,8 @@ class TestInputParser(QiskitAquaChemistryTestCase):
         except Exception as e:
             self.fail(str(e))
 
-        p.set_section_property('optimizer', 'dummy', 1002)
-        self.assertRaises(AquaError, p.validate_merge_defaults)
+        with self.assertRaises(AquaError):
+            p.set_section_property('backend', 'max_credits', -1)
 
 
 if __name__ == '__main__':
